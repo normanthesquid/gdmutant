@@ -103,6 +103,46 @@ def test_parse_sums_every_field_across_suites() -> None:
     assert (r.tests, r.failures, r.errors, r.skipped) == (2, 3, 4, 5)
 
 
+def test_parse_failure_detail_names_each_failing_testcase() -> None:
+    # Regression: a red GdUnit4 baseline used to fail with "the unmutated test suite failed" and no
+    # reason, because a written report left `detail` empty. Its own failures are the reason.
+    xml = (
+        "<testsuites>"
+        '<testsuite name="replay_test" tests="2" failures="1">'
+        '<testcase name="test_ok"/>'
+        '<testcase name="test_round_trip">'
+        '<failure message="FAILED: res://t.gd:31"><![CDATA[\nCannot open record (error 7)\n]]>'
+        "</failure></testcase></testsuite>"
+        '<testsuite name="other_test" tests="1" errors="1">'
+        '<testsuite name="inner"><testcase name="test_boom"><error/></testcase></testsuite>'
+        "</testsuite></testsuites>"
+    )
+    assert parse_junit_xml(xml).detail == (
+        "replay_test > test_round_trip: FAILED: res://t.gd:31\n"
+        "Cannot open record (error 7)\n"
+        "other_test > test_boom"
+    )
+
+
+def test_parse_failure_detail_is_empty_when_green() -> None:
+    xml = '<testsuite name="s" tests="1"><testcase name="test_ok"/></testsuite>'
+    assert parse_junit_xml(xml).detail == ""
+
+
+def test_parse_failure_detail_caps_cases_and_body() -> None:
+    cases = "".join(
+        f'<testcase name="t{i}"><failure message="m{i}">{"x" * 600}</failure></testcase>'
+        for i in range(7)
+    )
+    xml = f'<testsuite name="s" tests="7" failures="7">{cases}</testsuite>'
+    entries = parse_junit_xml(xml).detail.split("\n")
+    # Five cases shown (a head line and a body line each), then the count of the rest.
+    assert entries[0::2][:5] == [f"s > t{i}: m{i}" for i in range(5)]
+    assert entries[1] == "x" * 500
+    assert entries[-1] == "... and 2 more"
+    assert len(entries) == 11
+
+
 def test_parse_malformed_xml_raises() -> None:
     with pytest.raises(ParseError):
         parse_junit_xml("<not closed")

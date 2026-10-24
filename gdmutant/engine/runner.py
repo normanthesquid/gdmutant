@@ -498,5 +498,35 @@ def parse_junit_xml(xml: str, *, file_of: Callable[[str, str], str] | None = Non
         failures=failures,
         errors=errors,
         skipped=skipped,
+        detail=_junit_failure_detail(suites),
         suites=tuple(named),
     )
+
+
+#: How many failing testcases `_junit_failure_detail` spells out, and how much of each one's body it
+#: keeps. A red baseline needs the first few causes, not a thousand-test dump.
+_DETAIL_CASES: Final = 5
+_DETAIL_BODY_CHARS: Final = 500
+
+
+def _junit_failure_detail(suites: Sequence[ElementTree.Element]) -> str:
+    """The failing testcases in `suites`, as text for `SuiteResult.detail`, or ``""`` if none.
+
+    Without this, a JUnit report that went red told the reader nothing: the runner wrote a report,
+    so it had no captured output to offer, and the baseline failed with "the unmutated test suite
+    failed" and no reason why. Each entry names the suite and testcase, then the ``<failure>`` or
+    ``<error>`` message and body. `.iter` is right here, unlike the counts above: a testcase in a
+    nested suite is one test, listed once, whichever suite holds it.
+    """
+    entries: list[str] = []
+    for suite in suites:
+        for case in suite.iter("testcase"):
+            for problem in (*case.findall("failure"), *case.findall("error")):
+                head = f"{suite.get('name', '')} > {case.get('name', '')}"
+                message = problem.get("message", "").strip()
+                body = (problem.text or "").strip()[:_DETAIL_BODY_CHARS]
+                entry = f"{head}: {message}" if message else head
+                entries.append(f"{entry}\n{body}" if body else entry)
+    shown = "\n".join(entries[:_DETAIL_CASES])
+    hidden = len(entries) - _DETAIL_CASES
+    return shown + (f"\n... and {hidden} more" if hidden > 0 else "")
