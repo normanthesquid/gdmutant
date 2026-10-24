@@ -14,6 +14,12 @@ All notable changes to gdmutant are recorded here. The format follows
 
 ### Changed
 
+- A red baseline under GdUnit4 or GUT now says which tests failed and why. Before, a suite that
+  ran and wrote a report with failures stopped with "the unmutated test suite failed" and nothing
+  else, so you had to find and read the JUnit report yourself. The message now lists the first five
+  failing testcases with their failure messages. The coverage marker run's "not every test
+  passed" message gets the same list.
+
 - `.gdmutant.toml` can set `project = "."` without `--trust-config`. A `project` naming the folder
   the file sits in, which is the folder you ran gdmutant from, points gdmutant at nothing you had
   not already chosen, so the refusal was only getting in the way. Any spelling of that folder
