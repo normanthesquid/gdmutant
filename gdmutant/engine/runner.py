@@ -511,12 +511,7 @@ _DETAIL_BODY_CHARS: Final = 500
 
 def _junit_failure_detail(suites: Sequence[ElementTree.Element]) -> str:
     """The failing testcases in `suites`, as text for `SuiteResult.detail`, or ``""`` if none.
-
-    Without this, a JUnit report that went red told the reader nothing: the runner wrote a report,
-    so it had no captured output to offer, and the baseline failed with "the unmutated test suite
-    failed" and no reason why. Each entry names the suite and testcase, then the ``<failure>`` or
-    ``<error>`` message and body. `.iter` is right here, unlike the counts above: a testcase in a
-    nested suite is one test, listed once, whichever suite holds it.
+    `.iter` is right here, unlike the counts above: a testcase in a nested suite is still one test.
     """
     entries: list[str] = []
     for suite in suites:

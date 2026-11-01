@@ -104,8 +104,7 @@ def test_parse_sums_every_field_across_suites() -> None:
 
 
 def test_parse_failure_detail_names_each_failing_testcase() -> None:
-    # Regression: a red GdUnit4 baseline used to fail with "the unmutated test suite failed" and no
-    # reason, because a written report left `detail` empty. Its own failures are the reason.
+    # A red report's own failures are the detail a failed baseline prints.
     xml = (
         "<testsuites>"
         '<testsuite name="replay_test" tests="2" failures="1">'
